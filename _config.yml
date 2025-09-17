@@ -1,1 +1,20 @@
+# Site settings
+title: "Gesture Garden & Sound Lines Process Journal"
+description: "A digital garden where gestures bloom into sound and visuals – documenting the design, research, and prototypes."
+
+# Theme
 theme: jekyll-theme-modernist
+
+# Author / Info
+author:
+  name: "Bryce Marrett"
+
+# Plugins (optional if you want extra features)
+plugins:
+  - jekyll-feed     # RSS feed
+  - jekyll-sitemap  # Sitemap generation
+  - jekyll-seo-tag  # SEO optimization
+
+# Optional visual tweaks
+theme_color: "#4CAF50"   # your highlight color
+favicon: "/images/favicon.ico"
