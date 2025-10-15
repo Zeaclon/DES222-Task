@@ -83,11 +83,16 @@ window.addEventListener('deviceorientation', e => {
 
 // Animation loop
 function animate() {
+    const easing = 0.05; // smooth movement factor
+
     lines.forEach(line => {
         line.points.forEach((point, i) => {
-            // Sinusoidal distortion along the line + tilt influence
-            point.offsetX = Math.sin(Date.now()/500 + i) * lineAmplitude * tiltX;
-            point.offsetY = Math.cos(Date.now()/500 + i) * lineAmplitude * tiltY;
+            const targetX = Math.sin(Date.now()/500 + i) * lineAmplitude * tiltX;
+            const targetY = Math.cos(Date.now()/500 + i) * lineAmplitude * tiltY;
+
+            // smooth interpolation
+            point.offsetX += (targetX - point.offsetX) * easing;
+            point.offsetY += (targetY - point.offsetY) * easing;
 
             // Optional: play sound based on tilt magnitude
             const speed = Math.sqrt(tiltX*tiltX + tiltY*tiltY);
