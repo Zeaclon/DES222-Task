@@ -3,7 +3,8 @@ const ctx = canvas.getContext('2d');
 
 let lines = [];
 const numLines = 5;
-const pointsPerLine = 5;
+const pointsPerLine = 20; // longer line
+const lineAmplitude = 50; // max distortion from tilt
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -15,12 +16,14 @@ resizeCanvas();
 // Create lines with multiple points
 for (let i = 0; i < numLines; i++) {
     let points = [];
+    const startX = Math.random() * canvas.width;
+    const startY = Math.random() * canvas.height;
     for (let j = 0; j < pointsPerLine; j++) {
         points.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            dx: 0,
-            dy: 0
+            x0: startX + j*15, // base position
+            y0: startY,
+            offsetX: 0,         // distortion applied by tilt
+            offsetY: 0
         });
     }
     lines.push({
@@ -31,12 +34,12 @@ for (let i = 0; i < numLines; i++) {
 
 // Web Audio setup
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(frequency, duration = 0.2) {
+function playSound(frequency, duration = 0.1) {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -49,11 +52,18 @@ function drawLines() {
     lines.forEach(line => {
         ctx.beginPath();
         const pts = line.points;
-        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.moveTo(pts[0].x0 + pts[0].offsetX, pts[0].y0 + pts[0].offsetY);
         for (let i = 0; i < pts.length - 1; i++) {
-            const midX = (pts[i].x + pts[i+1].x)/2;
-            const midY = (pts[i].y + pts[i+1].y)/2;
-            ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+            const p1 = pts[i];
+            const p2 = pts[i+1];
+            const midX = (p1.x0 + p2.x0)/2 + (p1.offsetX + p2.offsetX)/2;
+            const midY = (p1.y0 + p2.y0)/2 + (p1.offsetY + p2.offsetY)/2;
+            ctx.quadraticCurveTo(
+                p1.x0 + p1.offsetX,
+                p1.y0 + p1.offsetY,
+                midX,
+                midY
+            );
         }
         ctx.strokeStyle = line.color;
         ctx.lineWidth = 2;
@@ -63,54 +73,30 @@ function drawLines() {
     });
 }
 
-// Update lines with smooth easing
-function updateLines() {
-    lines.forEach(line => {
-        line.points.forEach(point => {
-            point.x += (point.dx - point.x) * 0.05;
-            point.y += (point.dy - point.y) * 0.05;
-
-            // Keep inside canvas
-            point.x = Math.max(0, Math.min(canvas.width, point.x));
-            point.y = Math.max(0, Math.min(canvas.height, point.y));
-
-            // Map speed to sound
-            const speed = Math.sqrt(point.dx**2 + point.dy**2);
-            if (speed > 0.5) {
-                const freq = 200 + speed * 50;
-                playSound(freq, 0.05);
-            }
-        });
-    });
-}
-
-// Touch input
-canvas.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    lines.forEach(line => {
-        line.points.forEach(point => {
-            point.dx = touch.clientX;
-            point.dy = touch.clientY;
-        });
-    });
-}, { passive: false });
-
-// Device tilt
+// Update offsets based on device tilt
+let tiltX = 0, tiltY = 0;
 window.addEventListener('deviceorientation', e => {
-    const gamma = e.gamma || 0;
-    const beta = e.beta || 0;
-    lines.forEach(line => {
-        line.points.forEach(point => {
-            point.dx = canvas.width/2 + gamma*10;
-            point.dy = canvas.height/2 + beta*10;
-        });
-    });
+    tiltX = (e.gamma || 0) / 50; // left-right tilt
+    tiltY = (e.beta || 0) / 50;  // front-back tilt
 });
 
 // Animation loop
 function animate() {
-    updateLines();
+    lines.forEach(line => {
+        line.points.forEach((point, i) => {
+            // Sinusoidal distortion along the line + tilt influence
+            point.offsetX = Math.sin(Date.now()/500 + i) * lineAmplitude * tiltX;
+            point.offsetY = Math.cos(Date.now()/500 + i) * lineAmplitude * tiltY;
+
+            // Optional: play sound based on tilt magnitude
+            const speed = Math.sqrt(tiltX*tiltX + tiltY*tiltY);
+            if (speed > 0.1 && i === 0) { // only once per line
+                const freq = 200 + speed * 800;
+                playSound(freq, 0.05);
+            }
+        });
+    });
+
     drawLines();
     requestAnimationFrame(animate);
 }
