@@ -31,6 +31,21 @@ function playSound(frequency, gainValue = 0.05, duration = 0.1) {
 async function fetchWeather(lat, lon) {
     const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
     const data = await res.json();
+
+    console.log("Weather API response:", data); // <-- log full response
+
+    if (!data.main) {
+        console.error("Weather data missing `main`", data);
+        return {
+            location: "Unknown",
+            temperature: 0,
+            humidity: 0,
+            wind: 0,
+            pressure: 0,
+            cloudiness: 0
+        };
+    }
+
     return {
         location: data.name || 'Unknown',
         temperature: data.main.temp,
