@@ -2,9 +2,17 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
 let lines = [];
-const numLines = 5;
-const pointsPerLine = 20; // longer line
-const lineAmplitude = 50; // max distortion from tilt
+const pointsPerLine = 20;
+const lineAmplitudeBase = 30;
+
+// Example dataset: just label + value
+const dataItems = [
+    { label: "Temperature", value: 25 },
+    { label: "Humidity", value: 0.8 },
+    { label: "Wind", value: 12 },
+    { label: "Pressure", value: 1010 },
+    { label: "Cloudiness", value: 0.3 }
+];
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -13,34 +21,43 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Create lines with multiple points, fully on screen
-for (let i = 0; i < numLines; i++) {
+// Create lines fully on screen, with data
+dataItems.forEach((data) => {
     let points = [];
-    const maxLineWidth = (pointsPerLine - 1) * 15;                  // total width of the line
-    const startX = Math.random() * (canvas.width - maxLineWidth);  // ensure line fits on screen
-    const startY = Math.random() * canvas.height;                  // fully on screen vertically
+    const maxLineWidth = (pointsPerLine - 1) * 15;
+    const startX = Math.random() * (canvas.width - maxLineWidth);
+    const startY = Math.random() * canvas.height;
     for (let j = 0; j < pointsPerLine; j++) {
         points.push({
-            x0: startX + j*15, // base position
+            x0: startX + j*15,
             y0: startY,
             offsetX: 0,
             offsetY: 0
         });
     }
+
+    // Map value to visual properties
+    const colorHue = (data.value * 10) % 360; // example: map value to hue
+    const amplitude = lineAmplitudeBase + (data.value % 50); // arbitrary mapping
+    const lineWidth = 1 + (data.value % 5); // small variation
+
     lines.push({
         points,
-        color: `hsl(${Math.random()*360}, 80%, 60%)`
+        data,
+        color: `hsl(${colorHue}, 80%, 60%)`,
+        amplitude,
+        lineWidth
     });
-}
+});
 
 // Web Audio setup
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(frequency, duration = 0.1) {
+function playSound(frequency, gainValue = 0.05, duration = 0.1) {
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(gainValue, audioCtx.currentTime);
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     oscillator.start();
@@ -67,7 +84,7 @@ function drawLines() {
             );
         }
         ctx.strokeStyle = line.color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = line.lineWidth;
         ctx.shadowColor = line.color;
         ctx.shadowBlur = 10;
         ctx.stroke();
@@ -77,27 +94,26 @@ function drawLines() {
 // Update offsets based on device tilt
 let tiltX = 0, tiltY = 0;
 window.addEventListener('deviceorientation', e => {
-    tiltX = (e.gamma || 0) / 50; // left-right tilt
-    tiltY = (e.beta || 0) / 50;  // front-back tilt
+    tiltX = (e.gamma || 0) / 50;
+    tiltY = (e.beta || 0) / 50;
 });
 
 // Animation loop
 function animate() {
-    const easing = 0.05; // smooth movement factor
+    const easing = 0.05;
 
     lines.forEach(line => {
         line.points.forEach((point, i) => {
-            const targetX = Math.sin(Date.now()/500 + i) * lineAmplitude * tiltX;
-            const targetY = Math.cos(Date.now()/500 + i) * lineAmplitude * tiltY;
+            const targetX = Math.sin(Date.now()/500 + i) * line.amplitude * tiltX;
+            const targetY = Math.cos(Date.now()/500 + i) * line.amplitude * tiltY;
 
-            // smooth interpolation
             point.offsetX += (targetX - point.offsetX) * easing;
             point.offsetY += (targetY - point.offsetY) * easing;
 
-            // Optional: play sound based on tilt magnitude
+            // Sound: frequency from value only
             const speed = Math.sqrt(tiltX*tiltX + tiltY*tiltY);
-            if (speed > 0.1 && i === 0) { // only once per line
-                const freq = 200 + speed * 800;
+            if (speed > 0.1 && i === 0) {
+                const freq = 200 + (line.data.value * 10) + tiltX*50;
                 playSound(freq, 0.05);
             }
         });
