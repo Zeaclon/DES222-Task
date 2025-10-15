@@ -13,16 +13,17 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Create lines with multiple points
+// Create lines with multiple points, fully on screen
 for (let i = 0; i < numLines; i++) {
     let points = [];
-    const startX = Math.random() * canvas.width;
-    const startY = Math.random() * canvas.height;
+    const maxLineWidth = (pointsPerLine - 1) * 15;                  // total width of the line
+    const startX = Math.random() * (canvas.width - maxLineWidth);  // ensure line fits on screen
+    const startY = Math.random() * canvas.height;                  // fully on screen vertically
     for (let j = 0; j < pointsPerLine; j++) {
         points.push({
             x0: startX + j*15, // base position
             y0: startY,
-            offsetX: 0,         // distortion applied by tilt
+            offsetX: 0,
             offsetY: 0
         });
     }
