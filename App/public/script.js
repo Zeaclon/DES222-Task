@@ -79,8 +79,9 @@ canvas.addEventListener("mouseup", () => {
 
 // === TOUCH EVENTS ===
 canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // stop scrolling/zooming
+    e.preventDefault();
     const touch = e.touches[0];
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     currentLine = [{ x: touch.clientX, y: touch.clientY }];
 });
 

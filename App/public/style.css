@@ -22,3 +22,7 @@ body {
     border-radius: 10px;
     font-size: 16px;
 }
+
+canvas {
+    touch-action: none; /* prevent Safari from interpreting swipes as scrolling */
+}
