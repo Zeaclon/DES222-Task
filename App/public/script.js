@@ -12,6 +12,9 @@ let playheadSpeed = 1;
 let temperature = 25; // default
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+// Track if the user has started interaction
+let userStarted = false;
+
 // === WEATHER FETCH ===
 async function fetchWeather(lat, lon) {
     const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
@@ -61,42 +64,45 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 // === DRAW LINE ===
-canvas.addEventListener("mousedown", (e) => {
-    currentLine = [{ x: e.clientX, y: e.clientY }];
-});
+function startLine(x, y) {
+    currentLine = [{ x, y }];
+}
 
-canvas.addEventListener("mousemove", (e) => {
+function extendLine(x, y) {
     if (currentLine) {
-        currentLine.push({ x: e.clientX, y: e.clientY });
+        currentLine.push({ x, y });
         drawScene();
     }
-});
+}
 
-canvas.addEventListener("mouseup", () => {
+function endLine() {
     if (currentLine && currentLine.length > 1) lines.push(currentLine);
     currentLine = null;
+}
+
+// === MOUSE EVENTS ===
+canvas.addEventListener("mousedown", (e) => {
+    if (!userStarted) startUserInteraction();
+    startLine(e.clientX, e.clientY);
 });
+canvas.addEventListener("mousemove", (e) => extendLine(e.clientX, e.clientY));
+canvas.addEventListener("mouseup", () => endLine());
 
 // === TOUCH EVENTS ===
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
+    if (!userStarted) startUserInteraction();
     const touch = e.touches[0];
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    currentLine = [{ x: touch.clientX, y: touch.clientY }];
+    startLine(touch.clientX, touch.clientY);
 });
-
 canvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
-    if (!currentLine) return;
     const touch = e.touches[0];
-    currentLine.push({ x: touch.clientX, y: touch.clientY });
-    drawScene();
+    extendLine(touch.clientX, touch.clientY);
 });
-
 canvas.addEventListener("touchend", (e) => {
     e.preventDefault();
-    if (currentLine && currentLine.length > 1) lines.push(currentLine);
-    currentLine = null;
+    endLine();
 });
 
 // === DRAW EVERYTHING ===
@@ -104,7 +110,7 @@ function drawScene() {
     ctx.fillStyle = getSkyGradient();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw lines
+    // Draw all lines
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = 3;
@@ -136,8 +142,8 @@ function drawScene() {
 
 // === AUDIO ===
 function playPitch(y, slope) {
-    const freq = 200 + ((canvas.height - y) / canvas.height) * 1000; // y → pitch
-    const mod = slope * 300; // slope adds glide flavor
+    const freq = 200 + ((canvas.height - y) / canvas.height) * 1000;
+    const mod = slope * 300;
 
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
@@ -152,7 +158,7 @@ function playPitch(y, slope) {
     oscillator.stop(audioCtx.currentTime + 0.1);
 }
 
-// === DETECT INTERSECTION ===
+// === PLAYHEAD COLLISION ===
 function checkPlayheadCollisions() {
     for (const line of lines) {
         for (let i = 0; i < line.length - 1; i++) {
@@ -181,8 +187,15 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-// === INIT ===
-navigator.geolocation.getCurrentPosition(async (pos) => {
-    await fetchWeather(pos.coords.latitude, pos.coords.longitude);
-    animate();
-});
+// === START USER INTERACTION (Required for iOS Audio) ===
+async function startUserInteraction() {
+    userStarted = true;
+
+    if (audioCtx.state === "suspended") await audioCtx.resume();
+
+    // Start animation only after user interaction
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        await fetchWeather(pos.coords.latitude, pos.coords.longitude);
+        animate();
+    });
+}
