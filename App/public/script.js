@@ -109,22 +109,41 @@ function createLineFromWeather(weather) {
 // --- Draw animated lines ---
 function drawLines() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     lines.forEach(line => {
-        ctx.beginPath();
         const pts = line.points;
+
+        // Flowy line path
+        ctx.beginPath();
         ctx.moveTo(pts[0].x0 + pts[0].offsetX, pts[0].y0 + pts[0].offsetY);
-        for (let i = 0; i < pts.length - 1; i++) {
-            const p1 = pts[i];
-            const p2 = pts[i + 1];
-            const midX = (p1.x0 + p2.x0) / 2 + (p1.offsetX + p2.offsetX) / 2;
-            const midY = (p1.y0 + p2.y0) / 2 + (p1.offsetY + p2.offsetY) / 2;
-            ctx.quadraticCurveTo(p1.x0 + p1.offsetX, p1.y0 + p1.offsetY, midX, midY);
+
+        for (let i = 1; i < pts.length; i++) {
+            const p = pts[i];
+            const prev = pts[i - 1];
+            const midX = (p.x0 + prev.x0) / 2 + (p.offsetX + prev.offsetX) / 2;
+            const midY = (p.y0 + prev.y0) / 2 + (p.offsetY + prev.offsetY) / 2;
+            ctx.quadraticCurveTo(prev.x0 + prev.offsetX, prev.y0 + prev.offsetY, midX, midY);
         }
-        ctx.strokeStyle = line.color;
-        ctx.lineWidth = line.lineWidth;
-        ctx.shadowColor = line.color;
-        ctx.shadowBlur = 10;
+
+        // Glow if upside down
+        const isUpsideDown = effectiveBeta >= 150 || effectiveBeta <= -150;
+        ctx.strokeStyle = isUpsideDown ? `hsl(${(line.data.temperature*10)%360}, 100%, 70%)` : line.color;
+        ctx.lineWidth = line.lineWidth + (isUpsideDown ? 1.5 : 0);
+        ctx.shadowColor = isUpsideDown ? ctx.strokeStyle : 'transparent';
+        ctx.shadowBlur = isUpsideDown ? 20 : 0;
         ctx.stroke();
+
+        // Draw dots along the line
+        pts.forEach((p, i) => {
+            ctx.beginPath();
+            const dotX = p.x0 + p.offsetX;
+            const dotY = p.y0 + p.offsetY;
+            ctx.arc(dotX, dotY, isUpsideDown ? 6 : 3, 0, Math.PI*2);
+            ctx.fillStyle = isUpsideDown ? `hsl(${(line.data.temperature*10 + i*10)%360}, 100%, 80%)` : line.color;
+            ctx.shadowColor = isUpsideDown ? ctx.fillStyle : 'transparent';
+            ctx.shadowBlur = isUpsideDown ? 15 : 0;
+            ctx.fill();
+        });
     });
 }
 
@@ -141,24 +160,25 @@ window.addEventListener('deviceorientation', e => {
 // --- Animate visual + audio ---
 function animate() {
     const easing = 0.05;
+
     lines.forEach(line => {
         line.points.forEach((point, i) => {
-            const targetX = Math.sin(Date.now() / 500 + i) * line.amplitude * tiltX;
-            const targetY = Math.cos(Date.now() / 500 + i) * line.amplitude * tiltY;
+            // Flowy offsets
+            const targetX = Math.sin(Date.now()/1000 + i) * line.amplitude * tiltX;
+            const targetY = Math.cos(Date.now()/1000 + i) * line.amplitude * tiltY;
             point.offsetX += (targetX - point.offsetX) * easing;
             point.offsetY += (targetY - point.offsetY) * easing;
 
-            const speed = Math.sqrt(tiltX * tiltX + tiltY * tiltY);
-            // Only play sound if the phone is upside down
-            // Face down roughly ±150° to ±180°
+            // Sound
             const isUpsideDown = effectiveBeta >= 150 || effectiveBeta <= -150;
-            if (isUpsideDown && speed > 0.1 && i === 0) {
-                const freq = 200 + (line.data.temperature * 10) + tiltX * 50;
-                const gain = 0.05 + line.data.humidity * 0.1;
+            if (isUpsideDown && i === 0) {
+                const freq = 200 + (line.data.temperature * 10) + tiltX*50;
+                const gain = 0.05 + line.data.humidity*0.1;
                 playSound(freq, gain);
             }
         });
     });
+
     drawLines();
     requestAnimationFrame(animate);
 }
