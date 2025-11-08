@@ -28,8 +28,9 @@ function playSound(frequency, gainValue = 0.05, duration = 0.1) {
 }
 
 // --- Fetch weather data (via secure serverless API) ---
+const weatherKey = process.env.OPENWEATHER_API_KEY;
 async function fetchWeather(lat, lon) {
-    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`);
     const data = await res.json();
 
     console.log("Weather API response:", data); // <-- log full response
@@ -57,8 +58,9 @@ async function fetchWeather(lat, lon) {
 }
 
 // --- Fetch place info (via secure serverless API) ---
+const mapKey = process.env.GOOGLE_MAPS_API_KEY;
 async function fetchPlace(lat, lon) {
-    const res = await fetch(`/api/place?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${mapKey}`);
     const data = await res.json();
 
     if (!data.results || !data.results.length) {
