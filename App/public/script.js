@@ -134,6 +134,8 @@ window.addEventListener('deviceorientation', e => {
     tiltX = (e.gamma || 0) / 50;
     tiltY = (e.beta || 0) / 50;
     effectiveBeta = e.beta || 0;
+    // Debug
+    console.log("Beta:", effectiveBeta, "Gamma:", e.gamma);
 });
 
 // --- Animate visual + audio ---
@@ -148,7 +150,8 @@ function animate() {
 
             const speed = Math.sqrt(tiltX * tiltX + tiltY * tiltY);
             // Only play sound if the phone is upside down
-            const isUpsideDown = Math.abs(effectiveBeta) > 150; // ~150–180° = face-down
+            // Face down roughly ±150° to ±180°
+            const isUpsideDown = effectiveBeta >= 150 || effectiveBeta <= -150;
             if (isUpsideDown && speed > 0.1 && i === 0) {
                 const freq = 200 + (line.data.temperature * 10) + tiltX * 50;
                 const gain = 0.05 + line.data.humidity * 0.1;
