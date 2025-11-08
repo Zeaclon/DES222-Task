@@ -77,6 +77,27 @@ canvas.addEventListener("mouseup", () => {
     currentLine = null;
 });
 
+// === TOUCH EVENTS ===
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // stop scrolling/zooming
+    const touch = e.touches[0];
+    currentLine = [{ x: touch.clientX, y: touch.clientY }];
+});
+
+canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    if (!currentLine) return;
+    const touch = e.touches[0];
+    currentLine.push({ x: touch.clientX, y: touch.clientY });
+    drawScene();
+});
+
+canvas.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    if (currentLine && currentLine.length > 1) lines.push(currentLine);
+    currentLine = null;
+});
+
 // === DRAW EVERYTHING ===
 function drawScene() {
     ctx.fillStyle = getSkyGradient();
