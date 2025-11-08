@@ -27,13 +27,13 @@ function playSound(frequency, gainValue = 0.05, duration = 0.1) {
     oscillator.stop(audioCtx.currentTime + duration);
 }
 
-// --- Fetch weather data (via secure serverless API) ---
-const weatherKey = process.env.OPENWEATHER_API_KEY;
+// --- Fetch weather data from your API route ---
 async function fetchWeather(lat, lon) {
-    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`);
+    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+    if (!res.ok) throw new Error("Failed to fetch weather data");
     const data = await res.json();
 
-    console.log("Weather API response:", data); // <-- log full response
+    console.log("Weather API response:", data);
 
     if (!data.main) {
         console.error("Weather data missing `main`", data);
@@ -57,10 +57,10 @@ async function fetchWeather(lat, lon) {
     };
 }
 
-// --- Fetch place info (via secure serverless API) ---
-const mapKey = process.env.GOOGLE_MAPS_API_KEY;
+// --- Fetch place info from your API route ---
 async function fetchPlace(lat, lon) {
-    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${mapKey}`);
+    const res = await fetch(`/api/place?lat=${lat}&lon=${lon}`);
+    if (!res.ok) throw new Error("Failed to fetch place data");
     const data = await res.json();
 
     if (!data.results || !data.results.length) {
@@ -162,22 +162,26 @@ function startApp() {
     navigator.geolocation.getCurrentPosition(async pos => {
         const { latitude, longitude } = pos.coords;
 
-        // Fetch both from our secure endpoints
-        const [weather, place] = await Promise.all([
-            fetchWeather(latitude, longitude),
-            fetchPlace(latitude, longitude)
-        ]);
+        try {
+            // Fetch both from our secure API routes
+            const [weather, place] = await Promise.all([
+                fetchWeather(latitude, longitude),
+                fetchPlace(latitude, longitude)
+            ]);
 
-        console.log('Location info:', place);
-        console.log('Weather info:', weather);
+            console.log('Location info:', place);
+            console.log('Weather info:', weather);
 
-        createLineFromWeather({
-            ...weather,
-            location: place.name,
-            environment: place.type
-        });
+            createLineFromWeather({
+                ...weather,
+                location: place.name,
+                environment: place.type
+            });
 
-        animate();
+            animate();
+        } catch (err) {
+            console.error('Error fetching data:', err);
+        }
     }, err => {
         console.error('Geolocation failed:', err);
     });
