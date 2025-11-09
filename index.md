@@ -226,3 +226,104 @@ Focus on clarity/playability first. Even a single-device reactive system feels m
 - Guides future sensor/visual choices for MVP
 
 ---
+
+## Entry #6 – Week 6 – 20/09/2025: Prototyping Sound Lines
+
+**Goals**
+- Implement basic line-drawing on canvas
+- Trigger sound while drawing
+- Map line vertical position → pitch in real-time
+- Map playhead crossing → volume modulation
+
+**Technical Notes**
+- Web Audio API: `AudioContext`, `BufferSource`, `GainNode`
+- Loaded sounds for weather/wind categories
+- Lines store points, type, source, gainNode
+- Animation loop with playhead checking collision
+- Pitch mapped to line vertical position dynamically as line is drawn
+
+**Challenges Encountered**
+- Keeping sound responsive while user draws
+- Correct mapping of vertical position to playback rate
+- Combining environmental context (weather API) with sound generation
+
+**Next Steps**
+- Refine pitch mapping to collision with playhead
+- Increase wind volume independently
+- Handle multiple lines and line overlap gracefully
+
+---
+
+## Entry #7 – Week 7 – 25/09/2025: Environmental Integration
+
+**Updates**
+- Integrated weather API and geolocation
+- Playhead speed influenced by temperature
+- Collision detection adjusts gain per line
+- Wind sounds louder than weather sounds
+- Pitch adjusted dynamically as line is drawn, now needs refinement to change on playhead collision
+
+**Reflection**
+- This architecture allows multiple layers of interactivity
+- Sound feedback is immediate, playable, and fun
+- Still need smoother pitch change when playhead crosses line
+
+---
+
+## Entry #8 – Week 8 – 30/09/2025: Debugging & File Management
+
+**Git / GitHub Challenges**
+- Large audio files (>100MB) blocked by GitHub
+- Considered Git LFS for `wind.wav`
+- Resolved using local storage for now and optimizing files
+- Deleted or compressed large assets before committing
+
+**Node / Server Challenges**
+- Missing packages: `express`, `node-fetch`
+- Installed via `npm install express node-fetch`
+- Verified `package.json` properly configured
+- Learned importance of running server from project root
+- Ensured Vercel deployment picks up latest push
+- Debugging: sometimes Vercel did not auto-update → forced push required
+
+**Reflection**
+- Deployment pipeline knowledge is crucial
+- Pre-emptively checking package installation avoids runtime errors
+- Audio file sizes matter for source control; plan ahead
+
+---
+
+## Entry #9 – Week 9 – 09/11/2025: Latest Updates & Current Status
+
+**Sound Lines Prototype**
+- Playable demo: draw lines, hear sound immediately
+- Pitch mapping now **only changes on playhead collision**
+    - Low lines → low pitch
+    - High lines → high pitch
+- Wind sound volume independent of playhead
+- Weather-based sound pitch can be overridden by vertical collision
+
+**Technical Improvements**
+- Updated `server.js` and Web Audio setup to handle multiple lines
+- Added gain control, buffer management, and proper cleanup on line deletion
+- Refined `canvas` drawing for smooth line tracking
+- Sound sources start muted, animated gain ramps on collision
+- Code rewritten for clarity and modularity
+
+**Version Control & Deployment**
+- Compressed audio assets to fit GitHub limits
+- Learned to delete unpushed commits locally to fix branch issues
+- Confirmed local changes reflect on Vercel after forced push
+- Ensured `npm install` includes all necessary dependencies: `express`, `node-fetch`
+
+**Next Steps**
+- Test multi-user interaction (WebSockets)
+- Explore further environmental sensors (light, microphone)
+- Improve UI feedback for pitch/volume changes
+- Prepare demo for class and future portfolio
+
+**Reflection**
+- Prototype demonstrates core concept well
+- Gesture → sound mapping works in real-time
+- Learned important lessons about file management, audio processing, and deployment
+- Next iteration will focus on multiplayer and smoother collision-based pitch modulation
