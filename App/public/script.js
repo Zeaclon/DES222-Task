@@ -30,7 +30,7 @@ function getSkyGradient() {
     let top, bottom;
 
     if (hour >= 5 && hour < 8) { top="#ff9966"; bottom="#ff5e62"; }
-    else if (hour >= 8 && hour < 17) { top="#87ceeb"; bottom="#ffffff"; }
+    else if (hour >= 8 && hour < 17) { top="#87ceeb"; bottom="#afefff"; }
     else if (hour >= 17 && hour < 20) { top="#ff7e5f"; bottom="#feb47b"; }
     else { top="#001F3F"; bottom="#011B2E"; }
 
